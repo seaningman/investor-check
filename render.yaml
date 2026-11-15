@@ -8,3 +8,9 @@ services:
     # Several sections of a page load at once and Cala's answers can take over a
     # minute, so: many threads and a long timeout.
     startCommand: gunicorn app:app --threads 16 --timeout 180
+    envVars:
+      # Render asks for this when you deploy. With a key, the site works for
+      # every visitor straight away, on your credits. Left empty, each visitor
+      # is asked for their own key.
+      - key: CALA_API_KEY
+        sync: false

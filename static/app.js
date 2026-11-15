@@ -481,19 +481,20 @@ form.addEventListener("submit", (event) => {
   if (text) run(mode, text);
 });
 
-// With no key saved here and none on the server, nothing can work: ask for one first.
+// If the site has its own Cala key, it just works and the key link stays hidden.
+// Otherwise the visitor needs their own key: ask for it before anything else.
 async function boot() {
-  if (!savedKey()) {
-    try {
-      const status = await (await fetch("/api/key-status")).json();
-      if (!status.server_key) {
-        location.replace("/key");
-        return;
-      }
-    } catch (e) {
-      // carry on; a request will report the problem
-    }
+  let serverKey = true;
+  try {
+    serverKey = (await (await fetch("/api/key-status")).json()).server_key;
+  } catch (e) {
+    // carry on; a request will report the problem
   }
+  if (!serverKey && !savedKey()) {
+    location.replace("/key");
+    return;
+  }
+  document.getElementById("key-link").hidden = serverKey && !savedKey();
   showFromUrl();
 }
 

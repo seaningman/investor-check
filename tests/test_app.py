@@ -216,8 +216,11 @@ class CacheTests(unittest.TestCase):
         self.calls = 0
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
+        self.seed = tempfile.TemporaryDirectory()
+        self.addCleanup(self.seed.cleanup)
         for patch in (
             mock.patch.object(cala, "CACHE_DIR", folder.name),
+            mock.patch.object(cala, "SEED_DIR", self.seed.name),
             mock.patch.dict(os.environ, {"CALA_API_KEY": "stand-in"}),
             mock.patch("urllib.request.urlopen", side_effect=self.urlopen),
         ):
@@ -235,6 +238,15 @@ class CacheTests(unittest.TestCase):
         first = cala.search_entities("Sequoia")
         second = cala.search_entities("Sequoia")
         self.assertEqual(first, second)
+        self.assertEqual(self.calls, 1)
+
+    def test_seeded_answers_never_expire(self):
+        cala.search_entities("Sequoia")
+        long_ago = time.time() - cala.CACHE_SECONDS - 60
+        for name in os.listdir(cala.CACHE_DIR):  # move the saved answer into the seed folder, aged
+            os.replace(os.path.join(cala.CACHE_DIR, name), os.path.join(cala.SEED_DIR, name))
+            os.utime(os.path.join(cala.SEED_DIR, name), (long_ago, long_ago))
+        cala.search_entities("Sequoia")
         self.assertEqual(self.calls, 1)
 
     def test_use_cache_false_always_asks(self):

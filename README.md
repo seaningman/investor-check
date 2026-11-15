@@ -15,15 +15,20 @@ A tool for founders to check investors before they pitch, built on [Cala](https:
 
 ## Use it online
 
-Hosted, nobody needs to install anything: a visitor opens the site, pastes their own Cala API key on the key page, and starts. The key is saved in their browser only, and each visitor uses their own Cala credits.
+Hosted, nobody needs to install anything. There are two ways to run the site:
+
+- **With your Cala key on the server.** Visitors open the site and it works, with no sign-up and no key. Every request spends your credits and counts against your request limit.
+- **Without a key on the server.** Each visitor is asked once for their own Cala API key, which is saved in their browser only, and uses their own credits.
 
 To host your own copy on [Render](https://render.com) (free plan):
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/seaningman/investor-check)
 
 1. Press the button and sign in to Render with GitHub.
-2. Press Deploy. Render builds the app from `render.yaml` and gives you a web address.
-3. Do not add a `CALA_API_KEY` setting on Render, or every visitor would spend your credits.
+2. Render asks for `CALA_API_KEY`. Paste your key for a site that just works, or leave it empty to have visitors bring their own.
+3. Press Deploy. Render builds the app from `render.yaml` and gives you a web address.
+
+Sequoia Capital, Thiel Fellowship and the search "Seed fintech investors in Europe" are saved in `seed/`, so they load instantly on a fresh site and spend no credits.
 
 On the free plan the site pauses after 15 minutes without visitors; the next visit takes up to a minute to wake it.
 
@@ -64,6 +69,7 @@ Then open http://127.0.0.1:5001.
 | `corporate-identity.md` | Cala's visual identity, which the design follows |
 | `requirements.txt` | The libraries to install |
 | `render.yaml` | Hosting settings for Render |
+| `seed/` | Saved Cala answers for the demo investors, shipped with the app |
 | `.env` | Your Cala API key (secret, not uploaded) |
 
 ## Limits
