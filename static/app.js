@@ -33,8 +33,24 @@ function el(tag, props, ...children) {
   return node;
 }
 
+// The visitor's Cala API key, saved in this browser by the key page (key.js).
+function savedKey() {
+  try {
+    return localStorage.getItem("calaApiKey") || "";
+  } catch (e) {
+    return ""; // storage is blocked, e.g. some private windows
+  }
+}
+
 async function getJSON(url, signal) {
-  const response = await fetch(url, { signal });
+  const key = savedKey();
+  const response = await fetch(url, { signal, headers: key ? { "X-Cala-Key": key } : {} });
+  if (response.status === 401) {
+    // Missing or rejected key: send the visitor to the key page and leave
+    // this request pending so no error flashes up first.
+    location.href = key ? "/key?problem=1" : "/key";
+    return new Promise(() => {});
+  }
   let data = null;
   try {
     data = await response.json();
@@ -465,5 +481,21 @@ form.addEventListener("submit", (event) => {
   if (text) run(mode, text);
 });
 
+// With no key saved here and none on the server, nothing can work: ask for one first.
+async function boot() {
+  if (!savedKey()) {
+    try {
+      const status = await (await fetch("/api/key-status")).json();
+      if (!status.server_key) {
+        location.replace("/key");
+        return;
+      }
+    } catch (e) {
+      // carry on; a request will report the problem
+    }
+  }
+  showFromUrl();
+}
+
 window.addEventListener("popstate", showFromUrl);
-showFromUrl();
+boot();

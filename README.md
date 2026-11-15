@@ -13,7 +13,21 @@ A tool for founders to check investors before they pitch, built on [Cala](https:
 
 **Find investors.** Describe who you're looking for (e.g. "seed fintech investors in Europe") and get a table of investors to contact. Select a name to check that investor.
 
-## How to run
+## Use it online
+
+Hosted, nobody needs to install anything: a visitor opens the site, pastes their own Cala API key on the key page, and starts. The key is saved in their browser only, and each visitor uses their own Cala credits.
+
+To host your own copy on [Render](https://render.com) (free plan):
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/seaningman/investor-check)
+
+1. Press the button and sign in to Render with GitHub.
+2. Press Deploy. Render builds the app from `render.yaml` and gives you a web address.
+3. Do not add a `CALA_API_KEY` setting on Render, or every visitor would spend your credits.
+
+On the free plan the site pauses after 15 minutes without visitors; the next visit takes up to a minute to wake it.
+
+## Run it on your own machine
 
 You need Python 3.9+ and a Cala API key from [console.cala.ai](https://console.cala.ai).
 
@@ -42,26 +56,19 @@ Then open http://127.0.0.1:5001.
 | `app.py` | The web server (Flask): serves the page and a small JSON API for it |
 | `cala.py` | All communication with Cala's API, plus the answer cache |
 | `prompts.py` | The questions sent to Cala, kept in one place |
-| `templates/index.html` | The page's HTML |
+| `templates/index.html` | The main page's HTML |
+| `templates/key.html`, `static/key.js` | The page where a visitor pastes their Cala API key |
 | `static/style.css` | The page's styling |
 | `static/app.js` | The page's JavaScript: calls the JSON API and renders the answers |
 | `tests/test_app.py` | Automated tests (`python3 -m unittest`); they never call Cala |
 | `corporate-identity.md` | Cala's visual identity, which the design follows |
 | `requirements.txt` | The libraries to install |
+| `render.yaml` | Hosting settings for Render |
 | `.env` | Your Cala API key (secret, not uploaded) |
 
 ## Limits
 
 - **Speed.** Cala takes roughly 20 to 60 seconds to answer a question, so each section of an investor page loads on its own as its answer arrives.
-- **Request limit.** Cala's free plan allows 10 requests per minute. One investor check uses 9, so a second check straight after the first may be asked to wait a minute.
-- **Saved answers.** Every answer is saved in a `.cache/` folder and reused for 24 hours, so repeating a check or search is instant and uses no credits. Delete the folder to clear it.
+- **Request limit.** Cala's free plan allows 10 requests per minute per key. One investor check uses 9, so a second check straight after the first may be asked to wait a minute.
+- **Saved answers.** Every answer is saved in a `.cache/` folder and reused for 24 hours, so repeating a check or search is instant and uses no credits. On a hosted site the saved answers are shared by all visitors. Delete the folder to clear it.
 - **Accuracy.** Everything shown comes from Cala's knowledge. The briefing lists its sources; the tables do not, so check the facts before acting on them.
-
-## Putting it online
-
-`python3 app.py` runs Flask's development server with debug mode on, which is only safe on your own machine. To host it, run it with a production server instead, for example:
-
-```
-python3 -m pip install gunicorn
-gunicorn app:app
-```

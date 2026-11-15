@@ -71,16 +71,20 @@ def _cache_write(cache_path, answer):
         pass  # the cache is a convenience; never fail a request over it
 
 
-def _request(method, path, params=None, body=None):
-    """Send one request to Cala and return the parsed JSON response."""
-    cache_path = _cache_path(method, path, params, body)
-    cached = _cache_read(cache_path)
-    if cached is not None:
-        return cached
+def _request(method, path, params=None, body=None, api_key=None, use_cache=True):
+    """Send one request to Cala and return the parsed JSON response.
 
-    api_key = os.environ.get("CALA_API_KEY")
+    `api_key` is the visitor's own key; without one, CALA_API_KEY is used.
+    """
+    cache_path = _cache_path(method, path, params, body)
+    if use_cache:
+        cached = _cache_read(cache_path)
+        if cached is not None:
+            return cached
+
+    api_key = api_key or os.environ.get("CALA_API_KEY")
     if not api_key:
-        raise CalaError("CALA_API_KEY is not set. Add it to .env (get a key at https://console.cala.ai).")
+        raise CalaError("No Cala API key. Get one at https://console.cala.ai.", status=401)
 
     url = BASE_URL + path
     if params:
@@ -118,7 +122,7 @@ def _request(method, path, params=None, body=None):
 # --- Knowledge ----------------------------------------------------------------
 
 
-def knowledge_search(question, explainability=True, return_entities=True):
+def knowledge_search(question, explainability=True, return_entities=True, api_key=None):
     """Ask a natural-language question; get a markdown answer with sources.
 
     Returns {"content", "explainability", "context", "entities"}.
@@ -127,10 +131,10 @@ def knowledge_search(question, explainability=True, return_entities=True):
         "input": question,
         "explainability": explainability,
         "return_entities": return_entities,
-    })
+    }, api_key=api_key)
 
 
-def knowledge_query(question, return_entities=True):
+def knowledge_query(question, return_entities=True, api_key=None):
     """Ask a question; get structured rows whose columns depend on the question.
 
     Returns {"results": [...], "entities": [...]}.
@@ -138,13 +142,13 @@ def knowledge_query(question, return_entities=True):
     return _request("POST", "/v1/knowledge/query", body={
         "input": question,
         "return_entities": return_entities,
-    })
+    }, api_key=api_key)
 
 
 # --- Entities -----------------------------------------------------------------
 
 
-def search_entities(name, entity_types=None, limit=20):
+def search_entities(name, entity_types=None, limit=20, api_key=None, use_cache=True):
     """Find entities by (fuzzy) name, most relevant first.
 
     entity_types optionally filters, e.g. ["Company", "Person"].
@@ -153,23 +157,25 @@ def search_entities(name, entity_types=None, limit=20):
     params = {"name": name, "limit": limit}
     if entity_types:
         params["entity_types"] = entity_types
-    return _request("GET", "/v1/entities", params=params)
+    return _request("GET", "/v1/entities", params=params, api_key=api_key, use_cache=use_cache)
 
 
-def lookup_entity(scheme, value):
+def lookup_entity(scheme, value, api_key=None):
     """Resolve one entity by an external identifier, e.g. lookup_entity("lei", "9598...").
 
     Supported schemes: cik, companies_house_uk_company_number, lei, rssd_id, siren.
     """
-    return _request("POST", "/v1/entities/lookup", body={"id": {scheme: str(value)}})
+    return _request("POST", "/v1/entities/lookup", body={"id": {scheme: str(value)}}, api_key=api_key)
 
 
-def introspect_entity(entity_id):
+def introspect_entity(entity_id, api_key=None):
     """List the properties, relationships and numerical observations an entity has."""
-    return _request("GET", "/v1/entities/%s/introspection" % urllib.parse.quote(str(entity_id), safe=""))
+    return _request("GET", "/v1/entities/%s/introspection" % urllib.parse.quote(str(entity_id), safe=""),
+                    api_key=api_key)
 
 
-def retrieve_entity(entity_id, properties=None, relationships=None, numerical_observations=None):
+def retrieve_entity(entity_id, properties=None, relationships=None, numerical_observations=None,
+                    api_key=None):
     """Get an entity's details by its UUID.
 
     With no optional arguments Cala returns its default properties. Otherwise:
@@ -185,4 +191,5 @@ def retrieve_entity(entity_id, properties=None, relationships=None, numerical_ob
         body["relationships"] = relationships
     if numerical_observations:
         body["numerical_observations"] = numerical_observations
-    return _request("POST", "/v1/entities/%s" % urllib.parse.quote(str(entity_id), safe=""), body=body)
+    return _request("POST", "/v1/entities/%s" % urllib.parse.quote(str(entity_id), safe=""), body=body,
+                    api_key=api_key)

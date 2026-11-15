@@ -1,0 +1,10 @@
+# Tells Render (render.com) how to host the app. See "Use it online" in README.md.
+services:
+  - type: web
+    name: investor-check
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Several sections of a page load at once and Cala's answers can take over a
+    # minute, so: many threads and a long timeout.
+    startCommand: gunicorn app:app --threads 16 --timeout 180
