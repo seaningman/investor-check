@@ -18,6 +18,10 @@ TIMEOUT = 120  # seconds; the knowledge endpoints can take over a minute
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 CACHE_SECONDS = 24 * 60 * 60
 
+# Answers committed with the app, so the demo investors load instantly on a
+# freshly started site without spending credits. Copy files here from .cache/.
+SEED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed")
+
 
 class CalaError(Exception):
     """Any failure talking to Cala. `status` is the HTTP status, or None if no response."""
@@ -50,11 +54,15 @@ def _cache_path(method, path, params, body):
 
 
 def _cache_read(cache_path):
-    """A saved answer that is still fresh, or None."""
+    """A saved answer that is still fresh, or a seeded one, or None."""
     try:
-        if time.time() - os.path.getmtime(cache_path) > CACHE_SECONDS:
-            return None
-        with open(cache_path, encoding="utf-8") as f:
+        if time.time() - os.path.getmtime(cache_path) <= CACHE_SECONDS:
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+    except (OSError, ValueError):
+        pass
+    try:  # seeded answers ship with the app and never expire
+        with open(os.path.join(SEED_DIR, os.path.basename(cache_path)), encoding="utf-8") as f:
             return json.load(f)
     except (OSError, ValueError):
         return None
