@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your API key · Investor Check</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar wrap">
+    <a class="brand" href="{{ url_for('home') }}">
+      <svg aria-hidden="true" width="30" height="30" viewBox="0 0 30 30"><path d="M15 3.5c7-.6 11.8 4.6 11.4 11.6-.4 6.600-5.300 11.300-11.800 11.200C8 26.200 3.300 21.300 3.600 14.600 3.900 8.300 8.600 4 15 3.500z"/><path d="M9.500 15.400l4 4.100 7.300-8.600"/></svg>
+      Investor Check
+    </a>
+    <span class="powered">Powered by Cala</span>
+  </header>
+
+  <main class="wrap key-page">
+    <h1>Add your Cala API key</h1>
+    <p class="tagline">Investor Check gets its answers from Cala. To use it you need your own Cala key. It takes about a minute, and you only do it once on this device.</p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-number" aria-hidden="true">1</span>
+        <div>
+          <h2>Open Cala</h2>
+          <p>Go to <a href="https://console.cala.ai" target="_blank" rel="noopener noreferrer">console.cala.ai</a> (opens in a new tab) and sign up or log in.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-number" aria-hidden="true">2</span>
+        <div>
+          <h2>Copy your API key</h2>
+          <p>In the Cala console, create an API key and copy it. It is a long line of letters and numbers.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-number" aria-hidden="true">3</span>
+        <div>
+          <h2>Paste it here</h2>
+          <form id="key-form" class="key-form" autocomplete="off">
+            <label class="search-label" for="key">Your Cala API key</label>
+            <div class="search">
+              <input id="key" type="password" maxlength="200" autocomplete="off" spellcheck="false" autocapitalize="off" required>
+              <button id="toggle" class="button-quiet" type="button" aria-pressed="false">Show</button>
+              <button id="start" type="submit">Start</button>
+            </div>
+          </form>
+          <div id="problem" class="error" role="alert" hidden></div>
+          <p class="key-note">Your key is saved in this browser only. It is sent to Cala to get your answers and is not stored on our server.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div id="saved" class="saved-key" hidden>
+      <p>A key is already saved in this browser. Paste a new one above to replace it.</p>
+      <p><a class="button-link" href="{{ url_for('home') }}">Back to Investor Check</a>
+        <button id="remove" class="link-button" type="button">Remove saved key</button></p>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='key.js') }}"></script>
+</body>
+</html>

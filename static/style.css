@@ -95,6 +95,40 @@ svg path { fill: none; stroke: var(--brown); stroke-width: 2.6; stroke-linecap: 
 }
 .search button:hover { background: var(--brown); }
 
+/* --- API key page --------------------------------------------------------- */
+
+.powered a { display: inline-block; padding: 12px 0; color: var(--brown-900); }
+
+.key-page { display: flex; flex-direction: column; gap: 18px; max-width: 760px; margin-left: max(0px, calc((100% - 1152px) / 2)); padding-top: 56px; }
+.key-page h1 { font-weight: 300; font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.02em; }
+.key-page .tagline { max-width: 620px; }
+
+.steps { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+.steps > li {
+  display: flex; gap: 18px; padding: 24px;
+  border: 1px solid var(--brown-500); border-radius: 24px; background: var(--beige-50);
+}
+.steps > li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps h2 { font-size: 24px; line-height: 1.2; }
+.step-number {
+  flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  border-radius: 50%; background: var(--yellow); font: 22px var(--serif);
+}
+.key-form { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.key-form .search { margin-top: 0; }
+.search .button-quiet {
+  flex: 0 0 auto; padding: 0 18px; border: 1px solid var(--brown-500);
+  background: transparent; color: var(--brown-900);
+}
+.search .button-quiet:hover { background: var(--beige-200); }
+.search button:disabled { opacity: 0.6; cursor: default; }
+.key-note { font-size: 14px; color: var(--muted); }
+
+.saved-key { display: flex; flex-direction: column; gap: 4px; padding: 20px 24px; border-radius: 24px; background: var(--beige-200); }
+.saved-key p:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
+.saved-key .link-button { margin: 0; }
+.button-link { display: inline-flex; align-items: center; min-height: 44px; font-weight: 500; }
+
 /* --- Home feature blocks ------------------------------------------------- */
 
 .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; padding-top: 64px; }

@@ -1,3 +1,4 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, abort, jsonify, make_response, render_template, request
@@ -31,6 +32,14 @@ def _required(arg):
     return value
 
 
+def _key():
+    """The Cala API key for this request: the visitor's own, else the server's (.env)."""
+    key = request.headers.get("X-Cala-Key", "").strip() or os.environ.get("CALA_API_KEY", "")
+    if not key:
+        abort(make_response(jsonify(error="Add your Cala API key to continue."), 401))
+    return key
+
+
 def _sources(answer):
     """The documents behind a knowledge_search answer, without duplicates."""
     sources, seen = [], set()
@@ -56,12 +65,13 @@ def _column(row, *words):
     return None
 
 
-def _founders(company):
+def _founders(company, api_key):
     """The names of a company's founders, or None if Cala can't say."""
     if not company:
         return None
     try:
-        answer = cala.knowledge_query(prompts.company_founders(company), return_entities=False)
+        answer = cala.knowledge_query(
+            prompts.company_founders(company), return_entities=False, api_key=api_key)
     except cala.CalaError:
         return None  # e.g. rate limited; the caller keeps the founders it already has
     names = []
@@ -76,6 +86,8 @@ def _founders(company):
 def cala_error(e):
     if e.status == 429:
         return jsonify(error="Cala's request limit was reached. Wait a minute and try again."), 429
+    if e.status in (401, 403):
+        return jsonify(error="Cala didn't accept that API key."), 401
     return jsonify(error=e.message), e.status or 502
 
 
@@ -87,14 +99,42 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/key")
+def key_page():
+    """Where a visitor pastes their Cala API key."""
+    return render_template("key.html")
+
+
 # --- JSON API ---------------------------------------------------------------
+
+
+@app.route("/api/key-status")
+def api_key_status():
+    """Whether the server has its own key, so the page knows if it must ask for one."""
+    return jsonify(server_key=bool(os.environ.get("CALA_API_KEY")))
+
+
+@app.route("/api/check-key", methods=["POST"])
+def api_check_key():
+    """Test a visitor's key with one real (never cached) request to Cala."""
+    key = request.headers.get("X-Cala-Key", "").strip()
+    if not key:
+        return jsonify(error="Paste your API key first."), 400
+    try:
+        cala.search_entities("Cala", limit=1, api_key=key, use_cache=False)
+    except cala.CalaError as e:
+        if e.status in (401, 403):
+            return jsonify(error="That key didn't work. Check you copied all of it."), 401
+        raise
+    return jsonify(ok=True)
 
 
 @app.route("/api/entities")
 def api_entities():
     """The investors a typed name could mean, so the founder can pick the right one."""
     name = _required("name")[:100]  # Cala's limit for entity names
-    found = cala.search_entities(name, entity_types=["Company", "Organization", "Person"], limit=8)
+    found = cala.search_entities(
+        name, entity_types=["Company", "Organization", "Person"], limit=8, api_key=_key())
     return jsonify(entities=[
         {
             "id": entity.get("id") or "",
@@ -110,7 +150,7 @@ def api_entities():
 @app.route("/api/facts")
 def api_facts():
     """Quick facts from an investor's Cala entity record. Fast, unlike the briefing."""
-    entity = cala.retrieve_entity(_required("id"))
+    entity = cala.retrieve_entity(_required("id"), api_key=_key())
     properties = entity.get("properties") or {}
 
     facts = []
@@ -144,7 +184,8 @@ def api_investor():
     """A written briefing on one investor, with its sources."""
     name, about = _investor()
     answer = cala.knowledge_search(
-        prompts.investor_profile(name, about), explainability=False, return_entities=False)
+        prompts.investor_profile(name, about), explainability=False, return_entities=False,
+        api_key=_key())
     return jsonify(briefing=answer.get("content") or "", sources=_sources(answer))
 
 
@@ -152,7 +193,8 @@ def api_investor():
 def api_portfolio():
     """One investor's investments as table rows."""
     name, about = _investor()
-    answer = cala.knowledge_query(prompts.investor_portfolio(name, about), return_entities=False)
+    answer = cala.knowledge_query(
+        prompts.investor_portfolio(name, about), return_entities=False, api_key=_key())
     return jsonify(rows=answer.get("results") or [])
 
 
@@ -160,7 +202,9 @@ def api_portfolio():
 def api_worth_a_call():
     """One investor's failed or struggling companies and their founders, as table rows."""
     name, about = _investor()
-    answer = cala.knowledge_query(prompts.worth_a_call(name, about), return_entities=False)
+    api_key = _key()  # read here: the lookups below run in threads without the request
+    answer = cala.knowledge_query(
+        prompts.worth_a_call(name, about), return_entities=False, api_key=api_key)
     rows = answer.get("results") or []
 
     # Ask Cala for each company's founders, all at the same time. A row keeps
@@ -168,7 +212,7 @@ def api_worth_a_call():
     lookups = rows[:MAX_FOUNDER_LOOKUPS]
     companies = [row.get(_column(row, "company", "name")) for row in lookups]
     with ThreadPoolExecutor(max_workers=MAX_FOUNDER_LOOKUPS) as pool:
-        founders = list(pool.map(_founders, companies))
+        founders = list(pool.map(lambda company: _founders(company, api_key), companies))
     for row, names in zip(lookups, founders):
         if names:
             row[_column(row, "founder") or "founders"] = names
@@ -180,7 +224,8 @@ def api_worth_a_call():
 def api_search():
     """Investors matching a founder's description, as table rows."""
     query = _required("q")
-    answer = cala.knowledge_query(prompts.find_investors(query), return_entities=False)
+    answer = cala.knowledge_query(
+        prompts.find_investors(query), return_entities=False, api_key=_key())
     return jsonify(rows=answer.get("results") or [])
 
 
